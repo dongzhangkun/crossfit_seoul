@@ -1,0 +1,561 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<title>mapboxgl-jupyter viz</title>
+<meta charset='UTF-8' />
+<meta name='viewport'
+      content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+<script type='text/javascript'
+        src='https://api.tiles.mapbox.com/mapbox-gl-js/v1.0.0/mapbox-gl.js'></script>
+<link type='text/css'
+      href='https://api.tiles.mapbox.com/mapbox-gl-js/v1.0.0/mapbox-gl.css' 
+      rel='stylesheet' />
+
+<style type='text/css'>
+    body { margin:0; padding:0; }
+    .map { position: absolute; top:0; bottom:0; width:100%; }
+    .legend {
+        background-color: white;
+        color: #6e6e6e;
+        border-radius: 3px;
+        bottom: 10px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.10);
+        font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+        padding: 0;
+        position: absolute;
+        right: 10px;
+        z-index: 1;
+        min-width: 100px;
+    }
+   .legend.horizontal {bottom: 10px; text-align: left;}
+
+    /* legend header */
+    .legend .legend-header { border-radius: 3px 3px 0 0; background: white; }
+    .legend .legend-title {
+        padding: 6px 12px 6px 12px;
+        text-shadow: 0 0 2px white;
+        text-transform: capitalize;
+        text-align: center;
+        font-weight: bold !important;
+        font-size: 14px;
+        font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+        max-width: 160px;
+    }
+    .legend-title {padding: 6px 12px 6px 12px; text-shadow: 0 0 2px #FFF; text-transform: capitalize; text-align: center; max-width: 160px; font-size: 0.9em; font-weight: bold;}
+    .legend.horizontal .legend-title {text-align: left;}
+
+    /* legend items */
+    .legend-content {margin: 6px 12px 6px 12px; overflow: hidden; padding: 0; float: left; list-style: none; font-size: 0.8em;}
+    .legend.vertical .legend-item {white-space: nowrap;}
+    .legend-value {display: inline-block; line-height: 18px; vertical-align: top;}
+    .legend.horizontal ul.legend-content li.legend-item .legend-value,
+    .legend.horizontal ul.legend-content li.legend-item {display: inline-block; float: left; width: 30px; margin-bottom: 0; text-align: center; min-height: 30px;}
+
+    /* legend key styles */
+    .legend-key {display: inline-block; height: 10px;}
+    .legend-key.default, .legend-key.square {border-radius: 0;}
+    .legend-key.circle {border-radius: 50%;}
+    .legend-key.rounded-square {border-radius: 20%;}
+    .legend.vertical .legend-key {width: 10px; margin-right: 5px; margin-left: 1px;}
+    .legend.horizontal .legend-key {width: 30px; margin-right: 0; margin-top: 1px; float: left;}
+    .legend.horizontal .legend-key.square, .legend.horizontal .legend-key.rounded-square, .legend.horizontal .legend-key.circle {margin-left: 10px; width: 10px;}
+    .legend.horizontal .legend-key.line {margin-left: 5px;}
+    .legend.horizontal .legend-key.line, .legend.vertical .legend-key.line {border-radius: 10%; width: 20px; height: 3px; margin-bottom: 2px;}
+
+    /* gradient bar alignment */
+    .gradient-bar {margin: 6px 12px 6px 12px;}
+    .legend.horizontal .gradient-bar {width: 88%; height: 10px;}
+    .legend.vertical .gradient-bar {width: 10px; min-height: 50px; position: absolute; bottom: 4px;}
+
+    /* contiguous vertical bars (discrete) */
+    .legend.vertical.contig .legend-key {height: 15px; width: 10px;}
+    .legend.vertical.contig li.legend-item {height: 15px;}
+    .legend.vertical.contig {padding-bottom: 6px;}
+
+    /* vertical radius legend */
+    .legend.horizontal.legend-variable-radius ul.legend-content li.legend-item .legend-value,
+    .legend.horizontal.legend-variable-radius ul.legend-content li.legend-item {width: 30px; min-height: 20px;}
+
+    /* scale annotation */
+    .mapboxgl-ctrl.mapboxgl-ctrl-scale { border-color: #6e6e6e; 
+                                         background-color: white; 
+                                         color: #131516; }
+</style>
+
+
+<style>
+    .gradient-bar.bordered, .legend-key.bordered { border: solid black 0.1px; }
+</style>
+
+
+</head>
+<body>
+
+<div id='map' class='map'></div>
+
+<script type='text/javascript'>
+
+var legendHeader;
+
+function calcColorLegend(myColorStops, title) {
+    // create legend
+    var legend = document.createElement('div'),
+        legendContainer = document.getElementsByClassName('mapboxgl-ctrl-bottom-right')[0];
+
+    if ('circle' === 'contiguous-bar') {
+        legend.className = 'legend vertical contig';
+    }
+    else {
+        legend.className = 'legend vertical';
+    }
+    legend.id = 'legend-0';
+    document.body.appendChild(legend);
+    // add legend header and content elements
+    var mytitle = document.createElement('div'),
+        legendContent = document.createElement('ul');
+    legendHeader = document.createElement('div');
+    mytitle.textContent = title;
+    mytitle.className = 'legend-title'
+    legendHeader.className = 'legend-header'
+    legendContent.className = 'legend-content'
+    legendHeader.appendChild(mytitle);
+    legend.appendChild(legendHeader);
+    legend.appendChild(legendContent);
+    if (false === true) {
+        var gradientText = 'linear-gradient(to right, ',
+            gradient = document.createElement('div');
+        gradient.className = 'gradient-bar';
+        legend.appendChild(gradient);
+    }
+    // calculate a legend entries on a Mapbox GL Style Spec property function stops array
+    for (p = 0; p < myColorStops.length; p++) {
+        if (!!document.getElementById('legend-color-points-value-' + p)) {
+            // update the legend if it already exists
+            document.getElementById('legend-color-points-value-' + p).textContent = myColorStops[p][0];
+            document.getElementById('legend-color-points-id-' + p).style.backgroundColor = myColorStops[p][1];
+        }
+        else {
+            // create the legend if it doesn't yet exist
+            var item = document.createElement('li');
+            item.className = 'legend-item';
+            var key = document.createElement('span');
+            key.className = 'legend-key circle';
+            key.id = 'legend-color-points-id-' + p;
+            key.style.backgroundColor = myColorStops[p][1];
+            var value = document.createElement('span');
+            value.className = 'legend-value';
+            value.id = 'legend-color-points-value-' + p;
+            item.appendChild(key);
+            item.appendChild(value);
+            legendContent.appendChild(item);
+            
+            data = document.getElementById('legend-color-points-value-' + p)
+            // round number values in legend if precision defined
+            if ((typeof(myColorStops[p][0]) == 'number') && (typeof(null) == 'number')) {
+                data.textContent = myColorStops[p][0].toFixed(null);
+            }
+            else {
+                data.textContent = myColorStops[p][0];
+            }
+            // add color stop to gradient list
+            if (false === true) {
+                if (p < myColorStops.length - 1) {
+                    gradientText = gradientText + myColorStops[p][1] + ', ';
+                }
+                else {
+                    gradientText = gradientText + myColorStops[p][1] + ')';
+                }
+                if ('vertical' === 'vertical') {
+                    gradientText = gradientText.replace('to right', 'to bottom');
+                }
+            }
+        }
+    }
+    if (false === true) {
+        // convert to gradient scale appearance
+        gradient.style.background = gradientText;
+        // hide legend keys generated above
+        var keys = document.getElementsByClassName('legend-key');
+        for (var i=0; i < keys.length; i++) {
+            keys[i].style.visibility = 'hidden';
+        }
+        if ('vertical' === 'vertical') {
+            gradient.style.height = (legendContent.offsetHeight - 6) + 'px';
+        }
+    }
+    // add class for styling bordered legend keys
+    if (true) {
+        var keys = document.getElementsByClassName('legend-key');
+        for (var i=0; i < keys.length; i++) {
+            if (keys[i]) {
+                keys[i].classList.add('bordered');
+            }
+        }
+        var gradientBars = document.getElementsByClassName('gradient-bar');
+        for (var i=0; i < keys.length; i++) {
+            if (gradientBars[i]) {
+                gradientBars[i].classList.add('bordered');
+            }
+        }
+    }
+    // update right-margin for compact Mapbox attribution based on calculated legend width
+    updateAttribMargin(legend);
+    updateLegendMargin(legend);
+}
+
+
+function calcRadiusLegend(myRadiusStops, title, color) {
+
+    // maximum legend item height
+    var maxLegendItemHeight = 2 * myRadiusStops[myRadiusStops.length - 1][1];
+
+    // create legend
+    var legend = document.createElement('div');
+    legend.className = 'legend vertical legend-variable-radius';
+
+    legend.id = 'legend-1';
+    document.body.appendChild(legend);
+
+    // add legend header and content elements
+    var mytitle = document.createElement('div'),
+        legendContent = document.createElement('ul');
+    legendHeader = document.createElement('div');
+    mytitle.textContent = title;
+    mytitle.className = 'legend-title'
+    legendHeader.className = 'legend-header'
+    legendContent.className = 'legend-content'
+    legendHeader.appendChild(mytitle);
+    legend.appendChild(legendHeader);
+    legend.appendChild(legendContent);
+
+    // calculate a legend entries on a Mapbox GL Style Spec property function stops array
+    for (p = 0; p < myRadiusStops.length; p++) {
+        if (!!document.getElementById('legend-radius-points-value-' + p)) {
+            //update the legend if it already exists
+            document.getElementById('legend-radius-points-value-' + p).textContent = myRadiusStops[p][0];
+            document.getElementById('legend-radius-points-id-' + p).style.backgroundColor = color;
+        }
+        else {
+            // create the legend if it doesn't yet exist
+            var item = document.createElement('li');
+            item.className = 'legend-item';
+            item.height = '' + maxLegendItemHeight + 'px';
+
+            var key = document.createElement('span');
+            key.className = 'legend-key circle';
+            key.id = 'legend-radius-points-id-' + p;
+            key.style.backgroundColor = color;   
+
+            key.style.width = '' + myRadiusStops[p][1] * 2 + 'px';
+            key.style.height = '' + myRadiusStops[p][1] * 2 + 'px';
+
+            keyVerticalMargin = (maxLegendItemHeight - myRadiusStops[p][1] * 2) * 0.5;
+            key.style.marginTop = '' + keyVerticalMargin + 'px';
+            key.style.marginBottom = '' + keyVerticalMargin + 'px';
+
+            var value = document.createElement('span');
+            value.className = 'legend-value';
+            value.id = 'legend-radius-points-value-' + p;
+
+            item.appendChild(key);
+            item.appendChild(value);
+            legendContent.appendChild(item);
+            
+            data = document.getElementById('legend-radius-points-value-' + p)
+
+            // round number values in legend if precision defined
+            if ((typeof(myRadiusStops[p][0]) == 'number') && (typeof(null) == 'number')) {
+                data.textContent = myRadiusStops[p][0].toFixed(null);
+            }
+            else {
+                data.textContent = myRadiusStops[p][0];
+            }
+        }
+    }
+
+    // add class for styling bordered legend keys
+    if (true) {
+        var keys = document.getElementsByClassName('legend-key');
+        for (var i=0; i < keys.length; i++) {
+            if (keys[i]) {
+                keys[i].classList.add('bordered');
+            }
+        }
+    }
+
+    // update right-margin for compact Mapbox attribution based on calculated legend width
+    updateAttribMargin(legend);
+    updateLegendMargin(legend);
+
+}
+
+
+function updateAttribMargin(legend) {
+
+    // default margin is based on calculated legend width
+    var attribMargin = legend.offsetWidth + 15;
+    
+    // if horizontal legend layout (multiple legends are stacked vertically)
+    if ('vertical' === 'horizontal') {
+        document.getElementsByClassName('mapboxgl-ctrl-attrib')[0].style.marginRight = (attribMargin).toString() + 'px';
+    }
+    // vertical legend layout means multiple legends are side-by-side
+    else if ('vertical' === 'vertical') {
+        var currentMargin = Number(document.getElementsByClassName('mapboxgl-ctrl-attrib')[0].style.marginRight.replace('px', ''));
+        document.getElementsByClassName('mapboxgl-ctrl-attrib')[0].style.marginRight = (attribMargin + currentMargin).toString() + 'px';
+    }
+}
+
+
+function updateLegendMargin(legend) {
+
+    var verticalLegends = document.getElementsByClassName('legend vertical'),
+        horizontalLegends = document.getElementsByClassName('legend horizontal');
+
+    if (verticalLegends.length > 1) {
+        for (i = 1; i < verticalLegends.length; i++) {
+            verticalLegends[i].style.marginRight = (legend.offsetWidth - 5).toString() + 'px';
+            var legend = verticalLegends[i];
+        }
+    }
+    else if (horizontalLegends.length > 1) {
+        for (i = 1; i < horizontalLegends.length; i++) {
+            horizontalLegends[i].style.marginBottom = (legend.offsetHeight + 15).toString() + 'px';
+            var legend = horizontalLegends[i];
+        }
+    }
+}
+
+
+function generateInterpolateExpression(propertyValue, stops) {
+    var expression;
+    if (propertyValue == 'zoom') {
+        expression = ['interpolate', ['exponential', 1.2], ['zoom']]
+    }
+    else if (propertyValue == 'heatmap-density') {
+        expression = ['interpolate', ['linear'], ['heatmap-density']]
+    }
+    else {
+        expression = ['interpolate', ['linear'], ['get', propertyValue]]
+    }
+
+    for (var i=0; i<stops.length; i++) {
+        expression.push(stops[i][0], stops[i][1])
+    }
+    return expression
+}
+
+
+function generateMatchExpression(propertyValue, stops, defaultValue) {
+    var expression;
+    expression = ['match', ['get', propertyValue]]
+    for (var i=0; i<stops.length; i++) {
+        expression.push(stops[i][0], stops[i][1])
+    }
+    expression.push(defaultValue)
+    
+    return expression
+}
+
+
+function generatePropertyExpression(expressionType, propertyValue, stops, defaultValue) {
+    var expression;
+    if (expressionType == 'match') {
+        expression = generateMatchExpression(propertyValue, stops, defaultValue)
+    }
+    else if (propertyValue == 'identity') {
+        expression = ['get', propertyValue]
+    }
+    else {
+        expression = generateInterpolateExpression(propertyValue, stops)
+    }
+
+    return expression
+}
+
+</script>
+
+<!-- main map creation code, extended by mapboxgl/templates/circle.html -->
+<script type="text/javascript">
+
+    mapboxgl.accessToken = 'pk.eyJ1IjoiYmFuYWRvIiwiYSI6ImNrbDV6OXVxNDAya3MydnF1NzNvOWY3ZWYifQ.qQwNYb9iAgc9UsOoOcP4Bg';
+
+    var transformRequest = function(url, resourceType) {
+        const isMapboxRequest = url.slice(8, 22) === 'api.mapbox.com' ||
+          url.slice(10, 26) === 'tiles.mapbox.com';
+      
+        return {
+          url: isMapboxRequest ? url.replace('?', '?pluginName=PythonMapboxgl&') : url
+        }
+    };
+
+    var map = new mapboxgl.Map({
+        container: 'map',
+        attributionControl: false,
+        style: 'mapbox://styles/mapbox/light-v10?optimize=true',
+        center: [126.979952, 37.517296],
+        zoom: 10.3,
+        pitch: 0,
+        bearing: 0,
+        scrollZoom: true,
+        touchZoom: true,
+        doubleClickZoom: true,
+        boxZoom: true,
+        preserveDrawingBuffer: false,
+        transformRequest: transformRequest
+    });
+
+    
+    
+        map.addControl(new mapboxgl.AttributionControl({ compact: true }));
+
+    
+
+    
+
+        map.addControl(new mapboxgl.NavigationControl());
+
+    
+
+    
+
+    
+        
+    
+        
+
+
+    
+        
+        
+
+    
+
+    
+
+    map.on('style.load', function() {
+        
+        
+
+        map.addSource("data", {
+            "type": "geojson",
+            "data": {"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.07562, 37.61878]}, "properties": {"place_name": "3R복싱&크로스핏", "address_name": "서울 노원구 공릉동 617-7"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.02908, 37.49388]}, "properties": {"place_name": "골든크라운크로스핏 강남대로점", "address_name": "서울 서초구 서초동 1329-4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.96952, 37.56756]}, "properties": {"place_name": "골든크라운크로스핏 서대문역점", "address_name": "서울 중구 정동 25-2"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.95008, 37.54388]}, "properties": {"place_name": "런공덕", "address_name": "서울 마포구 공덕동 461"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.88945, 37.5105]}, "properties": {"place_name": "로키크로스핏", "address_name": "서울 구로구 신도림동 338"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.00245, 37.5825]}, "properties": {"place_name": "리복크로스핏 마루", "address_name": "서울 종로구 동숭동 1-57"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.10597, 37.50997]}, "properties": {"place_name": "리복크로스핏에이블", "address_name": "서울 송파구 송파동 32"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.12337, 37.48962]}, "properties": {"place_name": "리복크로스핏에이블 문정", "address_name": "서울 송파구 문정동 42-3"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.02187, 37.50906]}, "properties": {"place_name": "리복크로스핏투혼", "address_name": "서울 서초구 반포동 722-20"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.05681, 37.59165]}, "properties": {"place_name": "리스펙크로스핏", "address_name": "서울 동대문구 이문동 341-15"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.82779, 37.56902]}, "properties": {"place_name": "리폼드크로스핏 마곡", "address_name": "서울 강서구 마곡동 288-4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.87512, 37.52426]}, "properties": {"place_name": "리폼드크로스핏 목동", "address_name": "서울 양천구 목동 405-269"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.0746, 37.65786]}, "properties": {"place_name": "모아이짐 본관", "address_name": "서울 노원구 중계동 450-2"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.94417, 37.54255]}, "properties": {"place_name": "무한크로스핏", "address_name": "서울 마포구 염리동 174-18"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.08241, 37.64812]}, "properties": {"place_name": "바디밸런스3.0 크로스핏", "address_name": "서울 노원구 중계동 87-14"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.98218, 37.475]}, "properties": {"place_name": "비라인크로스핏 사당", "address_name": "서울 서초구 방배동 2525"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.83985, 37.56074]}, "properties": {"place_name": "아카크로스핏", "address_name": "서울 강서구 등촌동 678-13"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.02033, 37.52205]}, "properties": {"place_name": "알엑스메소드 크로스핏 가로수길점", "address_name": "서울 강남구 신사동 525-2"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03468, 37.50052]}, "properties": {"place_name": "애니바디캔크로스핏", "address_name": "서울 강남구 역삼동 646-20"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01474, 37.60707]}, "properties": {"place_name": "어바웃크로스핏", "address_name": "서울 성북구 정릉2동 210"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.99712, 37.48276]}, "properties": {"place_name": "얼티밋크로스핏 방배점", "address_name": "서울 서초구 방배동 908-5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.95014, 37.48186]}, "properties": {"place_name": "얼티밋크로스핏 서울대입구점", "address_name": "서울 관악구 봉천동 874-5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.04647, 37.65221]}, "properties": {"place_name": "창동크로스핏 슬램", "address_name": "서울 도봉구 창동 74-16"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.00872, 37.53358]}, "properties": {"place_name": "케이비크로스핏컴퍼니", "address_name": "서울 용산구 한남동 258"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.02083, 37.51335]}, "properties": {"place_name": "크로스핏 강남논현점", "address_name": "서울 강남구 논현동 19-2"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.13742, 37.53649]}, "properties": {"place_name": "크로스핏 강동", "address_name": "서울 강동구 길동 414-4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.92372, 37.55069]}, "properties": {"place_name": "크로스핏 뉴젠", "address_name": "서울 마포구 서교동 360-21"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.05908, 37.65327]}, "properties": {"place_name": "크로스핏 라쿤짐", "address_name": "서울 노원구 상계동 735-6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.01764, 37.58836]}, "properties": {"place_name": "크로스핏 로꼬", "address_name": "서울 성북구 삼선동5가 334"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.92395, 37.49069]}, "properties": {"place_name": "크로스핏 보라매&엘루이짐", "address_name": "서울 동작구 신대방동 395-68"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.05977, 37.49808]}, "properties": {"place_name": "크로스핏 볼케이노", "address_name": "서울 강남구 대치동 1021-3"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.9312, 37.48522]}, "properties": {"place_name": "크로스핏 신림", "address_name": "서울 관악구 신림동 1421-23"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.1262, 37.54986]}, "properties": {"place_name": "크로스핏 쓰리박스", "address_name": "서울 강동구 암사동 515-20"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.9104, 37.50522]}, "properties": {"place_name": "크로스핏 아이언하트", "address_name": "서울 영등포구 신길동 252-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.8841, 37.49999]}, "properties": {"place_name": "크로스핏 잭팟", "address_name": "서울 구로구 구로동 501"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.92021, 37.54967]}, "properties": {"place_name": "크로스핏 칸", "address_name": "서울 마포구 서교동 404-14"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.96678, 37.47493]}, "properties": {"place_name": "크로스핏 쿠타짐", "address_name": "서울 관악구 봉천동 1637-27"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.00654, 37.53415]}, "properties": {"place_name": "크로스핏 한남", "address_name": "서울 용산구 한남동 635-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.9972, 37.4993]}, "properties": {"place_name": "크로스핏106 서래빌리지", "address_name": "서울 서초구 반포4동 106-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.07307, 37.62614]}, "properties": {"place_name": "크로스핏Dragon", "address_name": "서울 노원구 공릉동 386-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.14348, 37.54927]}, "properties": {"place_name": "크로스핏GK 명일점", "address_name": "서울 강동구 천호동 25-6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.06209, 37.64833]}, "properties": {"place_name": "크로스핏HNF", "address_name": "서울 노원구 상계동 763-2"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.93461, 37.55854]}, "properties": {"place_name": "크로스핏VS", "address_name": "서울 서대문구 창천동 53-3"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.06575, 37.50865]}, "properties": {"place_name": "크로스핏강남 삼성점", "address_name": "서울 강남구 대치동 996-14"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.05033, 37.50226]}, "properties": {"place_name": "크로스핏강남 선릉점", "address_name": "서울 강남구 대치동 898"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03359, 37.50859]}, "properties": {"place_name": "크로스핏강남 언주점", "address_name": "서울 강남구 논현동 228-8"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.07556, 37.53818]}, "properties": {"place_name": "크로스핏라온", "address_name": "서울 광진구 자양동 227-17"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.08835, 37.55677]}, "properties": {"place_name": "크로스핏라온 중곡점", "address_name": "서울 광진구 중곡동 80-9"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03488, 37.52645]}, "properties": {"place_name": "크로스핏라임라잇", "address_name": "서울 강남구 신사동 644-3"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.93033, 37.56761]}, "properties": {"place_name": "크로스핏모멘텀", "address_name": "서울 서대문구 연희동 132-42"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.85894, 37.5252]}, "properties": {"place_name": "크로스핏무도 목동점", "address_name": "서울 양천구 신정동 953-8"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.90405, 37.52739]}, "properties": {"place_name": "크로스핏무브먼트", "address_name": "서울 영등포구 영등포동8가 42-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.06506, 37.65734]}, "properties": {"place_name": "크로스핏브릴리언트", "address_name": "서울 노원구 상계동 349-53"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.07714, 37.61421]}, "properties": {"place_name": "크로스핏블루라군", "address_name": "서울 중랑구 묵동 170-38"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.12832, 37.5309]}, "properties": {"place_name": "크로스핏빅풋 강동점", "address_name": "서울 강동구 성내동 520-4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.89489, 37.52562]}, "properties": {"place_name": "크로스핏세다", "address_name": "서울 영등포구 당산동3가 398-5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.97902, 37.57391]}, "properties": {"place_name": "크로스핏슈퍼밤", "address_name": "서울 종로구 수송동 146-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.93431, 37.5568]}, "properties": {"place_name": "크로스핏스팀펑크 신촌점", "address_name": "서울 서대문구 창천동 62-22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03033, 37.56474]}, "properties": {"place_name": "크로스핏아띠", "address_name": "서울 성동구 도선동 402"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.13097, 37.51015]}, "properties": {"place_name": "크로스핏앤서", "address_name": "서울 송파구 오금동 3-2"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.10071, 37.51735]}, "properties": {"place_name": "크로스핏어썸", "address_name": "서울 송파구 신천동 7"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.08163, 37.51145]}, "properties": {"place_name": "크로스핏어썸 본점", "address_name": "서울 송파구 잠실동 181-3"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03871, 37.65601]}, "properties": {"place_name": "크로스핏얼티메이트", "address_name": "서울 도봉구 쌍문동 656"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.86414, 37.55175]}, "properties": {"place_name": "크로스핏에브리바디", "address_name": "서울 강서구 등촌동 648-4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.88412, 37.48039]}, "properties": {"place_name": "크로스핏에이머", "address_name": "서울 금천구 가산동 60-15"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.10443, 37.51773]}, "properties": {"place_name": "크로스핏에임 잠실점", "address_name": "서울 송파구 신천동 11-8"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.92428, 37.55346]}, "properties": {"place_name": "크로스핏엑스", "address_name": "서울 마포구 서교동 344-6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.0669, 37.56335]}, "properties": {"place_name": "크로스핏온앤온", "address_name": "서울 동대문구 장안동 460-1"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.02859, 37.61698]}, "properties": {"place_name": "크로스핏웨일", "address_name": "서울 강북구 미아동 65-5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03709, 37.48213]}, "properties": {"place_name": "크로스핏제스트", "address_name": "서울 서초구 양재동 14-8"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03913, 37.47222]}, "properties": {"place_name": "크로스핏제스트 포레스트", "address_name": "서울 서초구 양재동 241-9"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.99893, 37.49874]}, "properties": {"place_name": "크로스핏제인", "address_name": "서울 서초구 반포동 92-10"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.95017, 37.48189]}, "properties": {"place_name": "크로스핏제트", "address_name": "서울 관악구 봉천동 874-5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.91537, 37.61262]}, "properties": {"place_name": "크로스핏최강", "address_name": "서울 은평구 갈현동 469-6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03925, 37.50377]}, "properties": {"place_name": "크로스핏카노", "address_name": "서울 강남구 역삼동 672-32"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.89447, 37.53006]}, "properties": {"place_name": "크로스핏쿠타", "address_name": "서울 영등포구 양평동3가 77-53"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.82962, 37.56083]}, "properties": {"place_name": "크로스핏쿠타짐 마곡점", "address_name": "서울 강서구 마곡동 727-1036"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.11602, 37.51579]}, "properties": {"place_name": "크로스핏퀸", "address_name": "서울 송파구 방이동 180-7"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.8971, 37.51846]}, "properties": {"place_name": "크로스핏킹콩", "address_name": "서울 영등포구 문래동3가 55-4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.85925, 37.52163]}, "properties": {"place_name": "크로스핏토스", "address_name": "서울 양천구 신정동 1026-3"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.83894, 37.54099]}, "properties": {"place_name": "크로스핏팬덤", "address_name": "서울 강서구 화곡동 1074-12"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.0755, 37.62628]}, "properties": {"place_name": "크로스핏펀", "address_name": "서울 노원구 공릉동 392-35"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.05239, 37.52518]}, "properties": {"place_name": "크로스핏페인스톰 청담점", "address_name": "서울 강남구 청담동 125-14"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.08109, 37.51019]}, "properties": {"place_name": "크로스핏피어스배틀", "address_name": "서울 송파구 잠실동 192-10"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03688, 37.57781]}, "properties": {"place_name": "크로스핏핏불", "address_name": "서울 동대문구 용두동 788"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.04957, 37.54891]}, "properties": {"place_name": "크로스핏핏불 성수동점", "address_name": "서울 성동구 성수동1가 709"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.09845, 37.59191]}, "properties": {"place_name": "크로스핏하나 망우점", "address_name": "서울 중랑구 망우동 444-26"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.98567, 37.49732]}, "properties": {"place_name": "크로스핏하이브", "address_name": "서울 서초구 방배동 755-14"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.95006, 37.47915]}, "properties": {"place_name": "크로스핏하쿠나마타타", "address_name": "서울 관악구 봉천동 1567-8"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.03371, 37.64624]}, "properties": {"place_name": "크로스핏현무", "address_name": "서울 도봉구 창동 650-47"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.93087, 37.52111]}, "properties": {"place_name": "크로스핏혼", "address_name": "서울 영등포구 여의도동 43-2"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.13223, 37.48622]}, "properties": {"place_name": "크로스핏힙스터", "address_name": "서울 송파구 문정동 111-9"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.92682, 37.51193]}, "properties": {"place_name": "포스크로스핏", "address_name": "서울 동작구 대방동 344-1"}}]},
+            "buffer": 1,
+            "maxzoom": 14,
+            "generateId": true
+        });
+
+        map.addLayer({
+            "id": "label",
+            "source": "data",
+            "type": "symbol",
+            "maxzoom": 24,
+            "minzoom": 0,
+            "layout": {
+                
+                "text-size" : generateInterpolateExpression('zoom', [[0, 8],[22, 3* 8]] ),
+                "text-offset": [0,-1]
+            },
+            "paint": {
+                "text-halo-color": "white",
+                "text-halo-width": generatePropertyExpression('interpolate', 'zoom', [[0,1], [18,5* 1]]),
+                "text-color": ["case",
+                    ["boolean", ["feature-state", "hover"], false], 
+                    "black", 
+                    "#131516"]
+            }
+        }, "" )
+        
+        map.addLayer({
+            "id": "circle",
+            "source": "data",
+            "type": "circle",
+            "maxzoom": 24,
+            "minzoom": 0,
+            "paint": {
+                
+                    "circle-color": ["case",
+                    ["boolean", ["feature-state", "hover"], false], 
+                    "black", "grey"],
+                
+                "circle-radius" : generatePropertyExpression('interpolate', 'zoom', [[0,3], [22,10 * 3]]),
+                "circle-stroke-color": ["case",
+                    ["boolean", ["feature-state", "hover"], false], 
+                    "black", 
+                    "black"],
+                "circle-stroke-width": generatePropertyExpression('interpolate', 'zoom', [[0,0.1], [18,5* 0.1]]),
+                "circle-opacity" : 1,
+                "circle-stroke-opacity" : 1
+            }
+        }, "label");
+        
+        
+
+        // Popups
+        
+            var popupAction = 'mousemove',
+                popupSettings =  {
+                    closeButton: false,
+                    closeOnClick: false
+                };
+        
+
+        // Create a popup
+        var popup = new mapboxgl.Popup(popupSettings);
+
+        
+
+        var hoveredStateId = 0;
+        
+        // Show the popup on mouseover
+        map.on(popupAction, function(e) {
+            
+            var features = map.queryRenderedFeatures(e.point, {layers: ['circle', 'label'] });
+
+            if (features.length > 0) {
+                map.getCanvas().style.cursor = 'pointer';
+                var f = features[0];
+                newHoveredStateId = f.id;
+                if (newHoveredStateId != hoveredStateId) {
+                    map.removeFeatureState({source: 'data', id: hoveredStateId});
+                    hoveredStateId = newHoveredStateId;
+                }
+                map.setFeatureState({source: 'data', id: hoveredStateId}, { hover: true});
+                let popup_html = '<div><li><b>Location</b>: ' + f.geometry.coordinates[0].toPrecision(6) + 
+                    ', ' + f.geometry.coordinates[1].toPrecision(6) + '</li>';
+
+                for (key in f.properties) {
+                    popup_html += '<li><b> ' + key + '</b>: ' + f.properties[key] + ' </li>'
+                }
+
+                popup_html += '</div>'
+                popup.setLngLat(e.lngLat)
+                    .setHTML(popup_html)
+                    .addTo(map);
+            }
+            else {
+                map.getCanvas().style.cursor = '';
+                popup.remove();
+                map.removeFeatureState({source: 'data', id: hoveredStateId});
+            }
+        });
+
+        
+        
+        // Fly to on click
+        map.on('click', 'circle', function(e) {
+            map.easeTo({
+                center: e.features[0].geometry.coordinates
+            });
+        });
+    });
+
+
+
+</script>
+
+<!-- add capability to export map or legend to image file -->
+
+
+</body>
+</html>
